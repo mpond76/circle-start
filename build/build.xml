@@ -39,7 +39,32 @@
 		<echo>SF User: ${sf.username}</echo>
 		<echo>Build Cmd: ${build.cmd}</echo>
 		
-		<antcall target="cleanProfilesPermSets" />
+		<!-- Use the 'scrubber' to remove falsy values from the xml nodes -->
+		<!-- the only nodes which will be in the resulting xml are the additive nodes -->
+		<!-- if the desire is to remove permissions that have been added in the past, this will need to be modified. -->
+		<if>
+			<available file="../src/profiles" type="dir" />
+			<then>
+				<antcall target="cleanProfiles" />
+			</then>
+			<else>
+				<echo>No src/profiles directory found to scrub of falsy metadata values.</echo>
+			</else>
+		</if>
+				
+		<!-- Use the 'scrubber' to remove falsy values from the xml nodes -->
+		<!-- the only nodes which will be in the resulting xml are the additive nodes -->
+		<!-- if the desire is to remove permissions that have been added in the past, this will need to be modified. -->
+		<if>
+			<available file="../src/permissionsets" type="dir" />
+			<then>
+				<antcall target="cleanPermSets" />
+			</then>
+			<else>
+				<echo>No src/permissionsets directory found to scrub of falsy metadata values.</echo>
+			</else>
+		</if>
+		
 		<antcall target="DeleteMetaData" />
 		<antcall target="UpdateMetaData" />
 		<antcall target="${build.cmd}" />
@@ -167,14 +192,38 @@
 		
 	</target>
 
-	<target name="cleanProfilesPermSets">
-		<echo>Cleaning Profiles &amp; Permission Sets</echo>
+	<target name="cleanProfiles">
+		<echo>Cleaning Profiles</echo>
 
 		<taskdef name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask"/>
 
 		<for param="file">
 			<path>
 				<fileset dir="../src/profiles" includes="*.profile"/>
+			</path>
+			<sequential>
+				<echo>Cleaning file @{file}</echo>
+				<xmltask source="@{file}" dest="@{file}">
+					<remove path="//:applicationVisibilities[:enabled = 'false']"/>
+					<remove path="//:classAccesses[:enabled = 'false']"/>
+					<remove path="//:fieldPermissions[:editable = 'false' and :readable = 'false']"/>
+					<remove path="//:objectPermissions[:allowCreate = 'false' and :allowDelete = 'false' and :allowEdit = 'false' and :allowRead = 'false' and :modifyAllRecords = 'false' and :viewAllRecords = 'false']"/>
+					<remove path="//:pageAccesses[:enabled = 'false']"/>
+					<remove path="//:userPermissions[:enabled = 'false']"/>
+					<remove path="//:recordTypeVisibilities[:visible = 'false']"/>
+					<remove path="//:tabSettings[:visibility = 'None']"/>
+				</xmltask>
+			</sequential>
+		</for>
+	</target>
+
+	<target name="cleanPermSets">
+		<echo>Cleaning Permission Sets</echo>
+
+		<taskdef name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask"/>
+
+		<for param="file">
+			<path>
 				<fileset dir="../src/permissionsets" includes="*.permissionset"/>
 			</path>
 			<sequential>
